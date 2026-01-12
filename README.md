@@ -9,6 +9,7 @@ This package provides utilities for:
 - **Hexagonal coordinate systems**: Axial/cube coordinates for hexagonal grids
 - **Goldberg polyhedron generation**: Create spherical hex grids using Goldberg polyhedra
 - **3D vertex operations**: Work with vertices on unit spheres
+- **Visualization**: Render hex grids in 3D and 2D projections
 
 ## Installation
 
@@ -70,6 +71,79 @@ distance = v1.distance_to(v2)
 dot = v1.dot(v2)
 cross = v1.cross(v2)
 ```
+
+### Visualization and Rendering
+
+The package includes rendering utilities to visualize generated hex grids. Install the visualization dependencies:
+
+```bash
+pip install -e ".[viz]"
+```
+
+Or for Jupyter notebook support with interactive 3D plots:
+
+```bash
+pip install -e ".[notebooks]"
+```
+
+#### 3D Rendering
+
+```python
+from goldberg_hexgrid import generate_goldberg_hex_sphere
+from goldberg_hexgrid.rendering import render_hex_grid_3d, render_hex_grid_interactive
+import matplotlib.pyplot as plt
+
+# Generate a hex grid
+hex_coords, positions, neighbors_map = generate_goldberg_hex_sphere(m=5, n=5)
+
+# Render in 3D (interactive in Jupyter notebooks with ipympl)
+fig, ax = render_hex_grid_interactive(
+    positions,
+    neighbors_map,
+    figsize=(14, 14),
+    alpha=0.8,
+    face_color="lightblue",
+    edge_color="navy",
+)
+
+plt.title("Goldberg Hex Sphere (m=5, n=5)")
+plt.show()
+```
+
+**Example output (m=5, n=5):**
+
+![Goldberg Hex Sphere (m=5, n=5)](goldberg-5-5.png)
+
+The rendering automatically detects and colors pentagons (5 neighbors) in red, while hexagons (6 neighbors) use the specified colors.
+
+#### 2D Map Projections
+
+```python
+from goldberg_hexgrid.rendering import render_hex_grid_2d_projection
+
+# Render as 2D map projection (Mollweide projection)
+fig, ax = render_hex_grid_2d_projection(
+    positions,
+    neighbors_map,
+    projection="mollweide",
+    figsize=(16, 8),
+    alpha=0.7,
+    face_color="lightgreen",
+    edge_color="darkgreen",
+)
+
+plt.show()
+```
+
+#### Jupyter Notebooks
+
+See the `notebooks/render_hexgrid.ipynb` notebook for complete examples including:
+- Interactive 3D rendering
+- Multiple viewing angles
+- 2D map projections
+- Different grid sizes
+
+**Note:** For interactive 3D plots in Jupyter, use `%matplotlib ipympl` at the beginning of your notebook.
 
 ## Development
 

@@ -39,3 +39,6 @@ __all__ = [
     "calculate_pentagon_threshold",
     "is_pentagon_tile",
 ]
+
+# Rendering functions are available but not imported by default
+# Import them explicitly: from goldberg_hexgrid.rendering import render_hex_grid_3d
