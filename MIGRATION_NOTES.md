@@ -45,18 +45,25 @@ This package was extracted from `backend/hex_grid.py` and `backend/goldberg_poly
    git submodule add <repository-url> goldberg-hexgrid
    ```
 
-4. **Install the Package**:
-   ```bash
-   cd goldberg-hexgrid
-   pip install -e .
+4. **Add to Backend Dependencies**:
+   
+   Add to `backend/pyproject.toml`:
+   ```toml
+   dependencies = [
+       # ... existing dependencies ...
+       "goldberg-hexgrid @ file:///${PROJECT_ROOT}/../goldberg-hexgrid",
+   ]
    ```
+   
+   Note: `${PROJECT_ROOT}` in uv resolves to the directory containing the `pyproject.toml` file (the `backend/` directory), so `../goldberg-hexgrid` goes up one level to find the package.
 
-5. **Update Backend Dependencies** (optional):
-   Add to `backend/pyproject.toml` or `backend/requirements.txt`:
+5. **Sync dependencies with uv**:
+   ```bash
+   cd backend
+   uv sync
    ```
-   goldberg-hexgrid @ file:///${PROJECT_ROOT}/goldberg-hexgrid
-   ```
-   Or rely on the editable install.
+   
+   This will install the package and update `uv.lock`.
 
 6. **Remove Old Files** (after verifying everything works):
    ```bash

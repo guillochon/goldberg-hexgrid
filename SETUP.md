@@ -2,7 +2,7 @@
 
 This package can be used as a standalone Python package or as a git submodule.
 
-## As a Git Submodule
+## As a Git Submodule (Recommended with uv)
 
 To use this package as a git submodule in your project:
 
@@ -11,21 +11,41 @@ To use this package as a git submodule in your project:
    git submodule add <repository-url> goldberg-hexgrid
    ```
 
-2. **Install the package**:
+2. **Add to your project's dependencies** (recommended):
+   
+   Add to your `pyproject.toml` (e.g., in `backend/pyproject.toml`):
+   
+   If `pyproject.toml` is in the same directory as `goldberg-hexgrid`:
+   ```toml
+   dependencies = [
+       # ... other dependencies ...
+       "goldberg-hexgrid @ file:///${PROJECT_ROOT}/goldberg-hexgrid",
+   ]
+   ```
+   
+   If `pyproject.toml` is in a subdirectory (e.g., `backend/pyproject.toml`):
+   ```toml
+   dependencies = [
+       # ... other dependencies ...
+       "goldberg-hexgrid @ file:///${PROJECT_ROOT}/../goldberg-hexgrid",
+   ]
+   ```
+   
+   Note: `${PROJECT_ROOT}` in uv resolves to the directory containing the `pyproject.toml` file.
+
+3. **Sync dependencies with uv**:
+   ```bash
+   cd backend  # or wherever your pyproject.toml is
+   uv sync
+   ```
+
+4. **Or install directly with uv** (alternative):
    ```bash
    cd goldberg-hexgrid
-   pip install -e .
-   cd ..
+   uv pip install -e .
    ```
 
-3. **Update your project's dependencies**:
-   Add `goldberg-hexgrid` to your `requirements.txt` or `pyproject.toml`:
-   ```
-   goldberg-hexgrid @ file:///${PROJECT_ROOT}/goldberg-hexgrid
-   ```
-   Or simply install it in editable mode as shown above.
-
-4. **Use in your code**:
+5. **Use in your code**:
    ```python
    from goldberg_hexgrid import HexCoordinates, generate_goldberg_hex_sphere
    ```
@@ -38,14 +58,14 @@ To use this package as a git submodule in your project:
    cd goldberg-hexgrid
    ```
 
-2. **Install in development mode**:
+2. **Install in development mode with uv**:
    ```bash
-   pip install -e .
+   uv pip install -e .
    ```
 
 3. **Or install in production mode**:
    ```bash
-   pip install .
+   uv pip install .
    ```
 
 ## Development Setup
@@ -53,7 +73,7 @@ To use this package as a git submodule in your project:
 For development with linting and type checking:
 
 ```bash
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 ruff check .
 mypy goldberg_hexgrid
 ```
