@@ -12,7 +12,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 
-from .hex_grid import HexCoordinates
+from .hex_grid import HexCoordinates, hex_ring
 
 PHI = (1 + math.sqrt(5)) / 2
 
@@ -167,6 +167,21 @@ def generate_grid_points(m: int, n: int) -> list[tuple[int, int]]:
     return grid_points
 
 
+def nearest_free_coord(
+    candidate: HexCoordinates, assigned_coords: set[tuple[int, int, int]]
+) -> HexCoordinates:
+    """
+    Return candidate if it is unassigned, otherwise the closest unassigned
+    coordinate found by searching rings of increasing radius around it.
+    """
+    radius = 0
+    while True:
+        for coord in hex_ring(candidate, radius):
+            if (coord.q, coord.r, coord.s) not in assigned_coords:
+                return coord
+        radius += 1
+
+
 def generate_goldberg_hex_sphere(
     m: int = 5, n: int = 5
 ) -> tuple[list[HexCoordinates], list[Vertex3D], dict[int, list[int]]]:
@@ -252,18 +267,7 @@ def generate_goldberg_hex_sphere(
     centers_array = np.array([[v.x, v.y, v.z] for v in unique_centers])
     tree = cKDTree(centers_array)
 
-    # Find neighbors for each center using cKDTree
-    # Calculate dynamic distance threshold based on tile density
-    # For a sphere, neighbor distance scales inversely with sqrt(number of tiles)
-    # Base threshold of 0.4 works for ~720 tiles (world size 5)
-    # Scale it down for larger world sizes
     num_tiles = len(unique_centers)
-    base_threshold = 0.4
-    base_tile_count = 720  # Approximate tiles for world size 5
-    # Scale threshold: more tiles = smaller threshold
-    neighbor_distance_threshold = base_threshold * math.sqrt(base_tile_count / max(num_tiles, 1))
-    # Clamp to reasonable bounds (0.15 to 0.5)
-    neighbor_distance_threshold = max(0.15, min(0.5, neighbor_distance_threshold))
 
     # Calculate pentagon threshold using the same formula as frontend
     # For unit sphere (radius=1), this is: sqrt(4 * 1^2 / num_tiles) = 2 / sqrt(num_tiles)
@@ -280,13 +284,22 @@ def generate_goldberg_hex_sphere(
         # This is more reliable than counting neighbors
         is_pentagon = is_pentagon_tile(center, ico_vertices, pentagon_threshold)
 
-        # Use cKDTree to find all neighbors within threshold
-        neighbors = tree.query_ball_point(
-            [center.x, center.y, center.z], r=neighbor_distance_threshold
-        )
+        # Determine number of neighbors based on pentagon detection
+        # Pentagons have 5 neighbors, hexagons have 6
+        if is_pentagon:
+            num_neighbors = 5
+        else:
+            num_neighbors = 6
+
+        # Use cKDTree to find the nearest centers (k nearest rather than a fixed
+        # radius, since neighbor spacing ranges from ~1.05 at GP(1,0) to tiny at
+        # large sizes); the extra slot is for the cell itself
+        k = min(num_neighbors + 1, num_tiles)
+        _, neighbors = tree.query([center.x, center.y, center.z], k=k)
         # Remove self and calculate distances
         candidates: list[tuple[int, float]] = []
-        for j in neighbors:
+        for j in np.atleast_1d(neighbors):
+            j = int(j)
             if j == i:
                 continue
             dist = center.distance_to(unique_centers[j])
@@ -299,13 +312,6 @@ def generate_goldberg_hex_sphere(
             raise ValueError(
                 f"Cell {i} has only {len(candidates)} neighbors. Spatial search failed."
             )
-
-        # Determine number of neighbors based on pentagon detection
-        # Pentagons have 5 neighbors, hexagons have 6
-        if is_pentagon:
-            num_neighbors = 5
-        else:
-            num_neighbors = 6
 
         # Take exactly the number of neighbors determined
         # For pentagons, take 5 closest; for hexagons, take 6 closest
@@ -427,6 +433,7 @@ def generate_goldberg_hex_sphere(
                     r = layer * dir_coord.r + pos_in_side * (next_dir_coord.r - dir_coord.r)
                     s = -q - r
                     candidate = HexCoordinates(q, r, s)
+                candidate = nearest_free_coord(candidate, assigned_coords)
                 hex_coords[neighbor_idx] = candidate
                 coord_key = (candidate.q, candidate.r, candidate.s)
                 assigned_coords.add(coord_key)
@@ -457,13 +464,17 @@ def generate_goldberg_hex_sphere(
                 else:
                     # Fallback
                     offset = len(hex_coords)
-                    candidate = HexCoordinates(offset, 0, -offset)
+                    candidate = nearest_free_coord(
+                        HexCoordinates(offset, 0, -offset), assigned_coords
+                    )
                     hex_coords[center_idx] = candidate
                     coord_key = (candidate.q, candidate.r, candidate.s)
                     assigned_coords.add(coord_key)
             else:
                 offset = len(hex_coords)
-                candidate = HexCoordinates(offset, 0, -offset)
+                candidate = nearest_free_coord(
+                    HexCoordinates(offset, 0, -offset), assigned_coords
+                )
                 hex_coords[center_idx] = candidate
                 coord_key = (candidate.q, candidate.r, candidate.s)
                 assigned_coords.add(coord_key)
